@@ -1,0 +1,46 @@
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<h1 class="mt-4">Compose</h1>
+<p class="lead mb-3">Welcome </p>
+<div id="compose" style="margin-top: 10px">
+    <form>
+        <div class="form-group">
+            <!--<input type="text" class="form-control" id="searchTerm" aria-describedby="emailHelp" placeholder="Enter Message...">-->
+            <textarea class="form-control" id="msgTxt" aria-describedby="emailHelp" placeholder="Enter Message..." ></textarea>
+            <br>
+            <button type="submit" class="btn btn-primary" id="search">Send</button>
+        </div>
+
+    </form>
+</div>
+
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        $("#search").click(function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                url:'/sendMessage',
+                method: 'POST',
+                dataType: 'json',
+                data:{
+                   text: $('#msgTxt').val()
+                },
+                success: function (data) {
+                    alert('sent');
+                },
+                error : function (xhr, ajaxOptions, thrownError) {
+                    if(xhr.status!=200) {
+                        alert('Something went wrong sending message, please refresh the page and try again');
+                    }
+                }
+            });
+
+        });
+
+
+    });
+
+</script>

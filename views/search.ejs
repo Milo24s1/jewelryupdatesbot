@@ -1,0 +1,245 @@
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="#">Navbar</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarColor01">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="/searchInterest">Home <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/searchBehaviours">Features</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Pricing</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/users/logout">Logout</a>
+            </li>
+        </ul>
+        <!--<form class="form-inline my-2 my-lg-0">-->
+            <!--<input class="form-control mr-sm-2" type="text" placeholder="Search">-->
+            <!--<button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>-->
+        <!--</form>-->
+    </div>
+</nav>
+
+<div id="searching" style="margin-top: 10px">
+    <form>
+        <div class="form-group">
+            <input type="text" class="form-control" id="searchTerm" aria-describedby="emailHelp" placeholder="Enter Interest...">
+            <button type="submit" class="btn btn-primary" id="search">Search</button>
+            <button id="export-interest" class="btn btn-success btn-export-interest" >Export to CSV</button>
+        </div>
+
+    </form>
+</div>
+
+<div id="searchResult">
+    <h4 id="result-summary-header" style="display: none"></h4>
+    <table id="search-result" class="table table-hover">
+
+
+    </table>
+</div>
+
+<script>
+    $(document).ready(function () {
+
+        var interestMap = {};
+        var searchTerm = null;
+
+
+        $('body').on('click','.select-all',function (e) {
+
+            if($(this).prop('checked')){
+                $('input[type="checkbox"]').prop('checked',true);
+            }
+            else {
+                $('input[type="checkbox"]').prop('checked',false);
+            }
+
+
+        });
+        $("#export-interest").click(function (e) {
+            e.preventDefault();
+            var selectedCheckbox = $('input[type="checkbox"]:checked:not([class="select-all"])');
+            if(selectedCheckbox.length>0){
+                let exportingList = [];
+                for(let checkbox of selectedCheckbox){
+                    exportingList.push(interestMap[checkbox.value]);
+                }
+                download(exportingList);
+            }
+            else {
+                alert('Please select at leaset one interest');
+            }
+
+        });
+
+        const thead = `<thead>
+        <tr>
+            <th class="custom-checkbox"><input class="select-all" type="checkbox" value="" ></th>
+            <th scope="col">INTERESTS</th>
+            <th scope="col">AUDIENCE SIZE</th>
+            <th scope="col">SEARCH</th>
+        </tr>
+        </thead>`;
+
+
+
+
+        $("#search").click(function (e) {
+            e.preventDefault();
+            $("#result-summary-header").hide();
+            $("#search-result").hide();
+
+            searchTerm = $("#searchTerm").val();
+            $.ajax({
+
+                url:'/searchInterest',
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    searchTerm:$("#searchTerm").val()
+                },
+                success: function (result) {
+                    let trs = `<tbody>`;
+                    for(let dataRow of result.data){
+
+                        interestMap[dataRow.id] = {
+                            interests:dataRow.name,
+                            audience:dataRow.audience_size
+                        };
+
+                        trs += `<tr class="table-secondary">
+            <th scope="row"><input class="" type="checkbox" value="${dataRow.id}" ></th>
+            <th scope="row">${dataRow.name}</th>
+            <td>${dataRow.audience_size}</td>
+            <td>
+                <a href="https://www.facebook.com/search/pages/?q=${dataRow.name.split(" ").join('+')}"><i class="fab fa-facebook-square">&nbsp;&nbsp;&nbsp;</i></a>
+                <a href="https://www.google.com/search?q=${dataRow.name.split(" ").join('+')}"><i class="fab fa-google">&nbsp;</i></a>
+            </td>
+        </tr>`;
+                    }
+                    trs += `</tbody>`;
+
+                    const numOfResult = result.data.length;
+                    const headerContent = `Explore ${result.data.length} interests related to "${searchTerm}"`;
+                    const noresultContent = `We couldn’t find interest suggestions for your keyword. Please try again.`;
+                    if(numOfResult>0){
+                        $("#result-summary-header").html('').html(headerContent).show;
+                        $("#search-result").html('').append(thead+trs).show();
+                    }
+                    else {
+                        $("#result-summary-header").html('').html(noresultContent).show();
+                    }
+
+
+
+                },
+                error : function (xhr, ajaxOptions, thrownError) {
+                    if(xhr.status!=200) {
+
+                        alert('Something went wrong with Saving Company, pleas refresh the page and try again');
+                    }
+                }
+            });
+        });
+
+
+        /**************************************/
+        /********** CSV EXPORT ****************/
+
+
+
+
+        function convertToCSV(objArray) {
+            var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+            var str = '';
+
+            for (var i = 0; i < array.length; i++) {
+                var line = '';
+                for (var index in array[i]) {
+                    if (line != '') line += ','
+
+                    line += array[i][index];
+                }
+
+                str += line + '\r\n';
+            }
+
+            return str;
+        }
+
+        function exportCSVFile(headers, items, fileTitle) {
+            if (headers) {
+                items.unshift(headers);
+            }
+
+            // Convert Object to JSON
+            var jsonObject = JSON.stringify(items);
+
+            var csv = convertToCSV(jsonObject);
+
+            var exportedFilenmae = fileTitle + '.csv' || 'export.csv';
+
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            if (navigator.msSaveBlob) { // IE 10+
+                navigator.msSaveBlob(blob, exportedFilenmae);
+            } else {
+                var link = document.createElement("a");
+                if (link.download !== undefined) { // feature detection
+                    // Browsers that support HTML5 download attribute
+                    var url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", exportedFilenmae);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+        }
+
+        function download(itemsNotFormatted){
+            var headers = {
+                interests: 'INTERESTS'.replace(/,/g, ''), // remove commas to avoid errors
+                audience: "AUDIENCE SIZE",
+            };
+
+
+            var itemsFormatted = [];
+
+            // format the data
+            itemsNotFormatted.forEach((item) => {
+                itemsFormatted.push({
+                    interests: item.interests.replace(/,/g, ''), // remove commas to avoid errors,
+                    audience: item.audience
+
+                });
+            });
+
+            var fileTitle = searchTerm.split(" ").join("+")+"_export"; // or 'my-unique-title'
+
+            exportCSVFile(headers, itemsFormatted, fileTitle); // call the exportCSVFile() function to process the JSON and trigger the download
+        }
+
+
+
+
+
+        /********** END OF CSV EXPORT **********/
+        /**************************************/
+    });
+</script>
+
+<style>
+    .btn-export-interest{
+        margin-left: 5px;
+        /*display: none;*/
+    }
+</style>
