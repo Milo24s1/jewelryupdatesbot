@@ -24,7 +24,7 @@ router.get('/privacy',  (req, res) =>{
 
 // Fb Login
 router.get('/fblogin',  (req, res) =>{
-        interestController.messageCompose(req,res);
+        interestController.obtainRequestToken(req,res);
     }
 );
 
@@ -52,6 +52,15 @@ router.post('/searchBehaviours',(req,res)=>{
 
 router.post('/sendMessage',(req,res)=>{
     interestController.sendMessage(req,res);
+});
+
+router.get('/twitterLogin',(req,res)=>{
+    interestController.obtainRequestToken(req,res);
+});
+
+
+router.get('/sign-in-with-twitter',(req,res)=>{
+    interestController.twitterRedirectHandle(req,res);
 });
 
 

@@ -1,6 +1,7 @@
 const request = require('request');
 const mainConfig = require('../../config/mainConfig');
 const InterestController = {};
+const Twitter = require('twitter-node-client').Twitter;
 
 InterestController.fbRedirectHandle = function (req,res) {
 
@@ -173,8 +174,152 @@ InterestController.messageCompose = function(req,res){
     res.render('messageCompose',{});
 };
 
+InterestController.bindAccountWithTwitter = function(req,res){
+    res.render('bindTwitter',{});
+};
+
 InterestController.sendMessage = function(req,res){
     res.send({'msg':'sent'});
+};
+
+InterestController.twitterRedirectHandle = function(req,res){
+    const oauth_token = req.query.oauth_token;
+    const oauth_verifier = req.query.oauth_verifier;
+
+    const oauth_consumer_key=mainConfig.oauth_consumer_key;
+
+    const oauth_nonce = '';
+    const oauth_signature = '';
+
+    console.log('2nd step result');
+    console.log('oauth_token is '+oauth_token);
+    console.log('oauth_verifier is '+oauth_verifier);
+
+    const postOptions = {
+        jar:true,
+        followAllRedirects:true,
+        headers:{
+            'Authorization':`OAuth oauth_consumer_key="${oauth_consumer_key}",oauth_token="${oauth_token}",oauth_signature_method="HMAC-SHA1",oauth_timestamp="1570634947",oauth_nonce="niATbZ",oauth_version="1.0",oauth_signature="nVnX08kkvsYpNUc9w4YCujae1AY%3D"`
+        },
+        url:'https://api.twitter.com/oauth/access_token',
+        method: 'POST',
+        form:{
+            oauth_verifier:oauth_verifier
+        }
+    };
+    try {
+        request.post(postOptions,(err,response,html)=>{
+
+            if(err){
+                console.log('err in twitterRedirectHandle post: '+err);
+            }
+            else {
+                console.log(html);
+                res.send(html);
+            }
+        });
+    }
+    catch (e) {
+        console.log('****** Exception in Converting the request token to an access token post request ******');
+        console.log('catch is '+e);
+    }
+
+};
+
+InterestController.obtainRequestToken = function(req,res){
+    const encoded_redirect_url = encodeURIComponent(mainConfig.redirect_url);
+    const oauth_consumer_key = mainConfig.oauth_consumer_key;
+    const oauth_token = mainConfig.oauth_token;
+
+    const postOptions = {
+        jar:true,
+        followAllRedirects:true,
+        url:'https://api.twitter.com/oauth/request_token',
+        method:'POST',
+        headers:{
+          'Authorization':`OAuth oauth_consumer_key="${oauth_consumer_key}",oauth_token="${oauth_token}",oauth_signature_method="HMAC-SHA1",oauth_timestamp="1570721120",oauth_nonce="sZXwTM",oauth_version="1.0",oauth_signature="wS0f5SipkoPbZ4hlLOCOjH12%2BfE%3D"`
+        }
+
+    };
+    try {
+        request.post(postOptions,(error,response,html)=>{
+            if(error){
+                console.log('post error: '+error);
+            }
+            else {
+                const jsonResponse = [];
+                html.split('&').map(o=>{jsonResponse[o.split("=")[0]] =o.split("=")[1]});
+                console.log(jsonResponse);
+
+                const request_oauth_token = jsonResponse['oauth_token'];
+                const request_oauth_token_secret = jsonResponse['oauth_token_secret'];
+                const oauth_callback_confirmed = jsonResponse['oauth_callback_confirmed'];
+                const TWITTER_LINK = 'https://api.twitter.com/oauth/authenticate?oauth_token='+request_oauth_token;
+                res.render('bindTwitter',{twitterLoginLink:TWITTER_LINK});
+            }
+        });
+    }
+    catch (e) {
+        console.log('catch in obtainRequestToken: '+e);
+    }
+
+
+};
+
+InterestController.sendDirectMessage = function(receiverId,msgText){
+
+    var error = function (err, response, body) {
+        console.log('ERROR [%s]', err);
+    };
+    var success = function (data) {
+        console.log('Data [%s]', data);
+    };
+
+    const twitterConfig = {
+        "consumerKey":mainConfig.oauth_consumer_key,
+        "consumerSecret": mainConfig.consumer_secret,
+        "accessToken": mainConfig.user_access_token, //this should be user access token obatained via redirect thing
+        "accessTokenSecret": mainConfig.user_access_token_secret, //this should be user access token obatained via redirect thing
+        "callBackUrl": mainConfig.redirect_url
+    };
+    const twitterClient = new Twitter(twitterConfig);
+    twitterClient.postCustomApiCall('/direct_messages/new.json',{user_id: receiverId, 'text':msgText}, error, success);
+
+
+};
+
+InterestController.testNodeRequest = function(){
+    const oauth_consumer_key=mainConfig.oauth_consumer_key;
+    const oauth_nonce = '';
+    const oauth_signature = '';
+    const oauth_token = mainConfig.oauth_token;
+    const postOptions = {
+        jar:true,
+        followAllRedirects:true,
+        method:'GET',
+        headers:{
+            'Authorization':`OAuth oauth_consumer_key="${oauth_consumer_key}",oauth_token=${oauth_token},oauth_signature_method="HMAC-SHA1",oauth_timestamp="1570634947",oauth_nonce="niATbZ",oauth_version="1.0",oauth_signature="nVnX08kkvsYpNUc9w4YCujae1AY%3D"`
+        },
+        url:'https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=icclive&count=10'
+    };
+    try {
+        request.get(postOptions,(err,response,html)=>{
+
+            if(err){
+                console.log('err in twitterRedirectHandle post: '+err);
+            }
+            else {
+                console.log(html);
+                // res.send(html);
+            }
+        });
+    }
+    catch (e) {
+        console.log('****** Exception in Converting the request token to an access token post request ******');
+        console.log('catch is '+e);
+    }
+
+
 };
 
 module.exports = InterestController;
