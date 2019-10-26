@@ -33,9 +33,9 @@ router.get('/callback/',  (req, res) =>
     interestController.fbRedirectHandle(req,res)
 );
 
-//Search
-router.get('/search',  (req, res) =>{
-     res.render('search');
+//Campaigns
+router.get('/campaigns',  (req, res) =>{
+     res.render('campaigns');
     }
 );
 //Search Interest

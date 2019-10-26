@@ -1,7 +1,7 @@
 const request = require('request');
 const mainConfig = require('../../config/mainConfig');
 const InterestController = {};
-const Twitter = require('twitter-node-client').Twitter;
+const qs = require('querystring');
 
 InterestController.fbRedirectHandle = function (req,res) {
 
@@ -214,8 +214,11 @@ InterestController.twitterRedirectHandle = function(req,res){
                 console.log('err in twitterRedirectHandle post: '+err);
             }
             else {
-                console.log(html);
-                res.send(html);
+                const req_data = qs.parse(html);
+                console.log('access token is :'+req_data.oauth_token);
+                console.log('access token secret :'+req_data.oauth_token_secret);
+                res.render('userCreds',
+                    {access_token:req_data.oauth_token,access_token_secret:req_data.oauth_token_secret});
             }
         });
     }
@@ -230,16 +233,17 @@ InterestController.obtainRequestToken = function(req,res){
     const encoded_redirect_url = encodeURIComponent(mainConfig.redirect_url);
     const oauth_consumer_key = mainConfig.oauth_consumer_key;
     const oauth_token = mainConfig.oauth_token;
-
+    //TODO change this, values nonce dyanmic
     const postOptions = {
         jar:true,
         followAllRedirects:true,
         url:'https://api.twitter.com/oauth/request_token',
         method:'POST',
-        headers:{
-          'Authorization':`OAuth oauth_consumer_key="${oauth_consumer_key}",oauth_token="${oauth_token}",oauth_signature_method="HMAC-SHA1",oauth_timestamp="1570721120",oauth_nonce="sZXwTM",oauth_version="1.0",oauth_signature="wS0f5SipkoPbZ4hlLOCOjH12%2BfE%3D"`
-        }
-
+        oauth :
+            {
+                 consumer_key: oauth_consumer_key
+                , consumer_secret: mainConfig.consumer_secret
+            }
     };
     try {
         request.post(postOptions,(error,response,html)=>{
@@ -262,28 +266,6 @@ InterestController.obtainRequestToken = function(req,res){
     catch (e) {
         console.log('catch in obtainRequestToken: '+e);
     }
-
-
-};
-
-InterestController.sendDirectMessage = function(receiverId,msgText){
-
-    var error = function (err, response, body) {
-        console.log('ERROR [%s]', err);
-    };
-    var success = function (data) {
-        console.log('Data [%s]', data);
-    };
-
-    const twitterConfig = {
-        "consumerKey":mainConfig.oauth_consumer_key,
-        "consumerSecret": mainConfig.consumer_secret,
-        "accessToken": mainConfig.user_access_token, //this should be user access token obatained via redirect thing
-        "accessTokenSecret": mainConfig.user_access_token_secret, //this should be user access token obatained via redirect thing
-        "callBackUrl": mainConfig.redirect_url
-    };
-    const twitterClient = new Twitter(twitterConfig);
-    twitterClient.postCustomApiCall('/direct_messages/new.json',{user_id: receiverId, 'text':msgText}, error, success);
 
 
 };
