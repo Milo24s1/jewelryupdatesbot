@@ -1,12 +1,19 @@
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
 <div class="row mt-5">
   <div class="col-md-6 m-auto">
     <div class="card card-body text-center">
       <h1><i class="fab fa-node-js fa-3x"></i></h1>
-      <p>Create an account or login</p>
-      <a href="/users/register" class="btn btn-primary btn-block mb-2"
-        >Register</a
-      >
+      <p>Login to bind your twitter bot client app</p>
+      <!--<a href="/users/register" class="btn btn-primary btn-block mb-2"-->
+        <!--&gt;Register</a-->
+      <!--&gt;-->
       <a href="/users/login" class="btn btn-secondary btn-block">Login</a>
     </div>
   </div>
 </div>
+<script>
+    $(document).ready(function () {
+        $('a[href*="logout"]').hide();
+    });
+</script>
